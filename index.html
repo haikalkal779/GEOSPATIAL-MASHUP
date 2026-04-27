@@ -611,7 +611,7 @@
             <div class="layer-icon" style="background:rgba(244,114,182,0.1);color:var(--danger)">⭕</div>
             <div>
               <div class="layer-name">Circle</div>
-              <div class="layer-sub">Radius 1000m</div>
+              <div class="layer-sub">Radius 5000m</div>
             </div>
           </div>
           <div class="toggle on" id="toggle-circle"></div>
@@ -875,9 +875,9 @@
   // ─── CIRCLE ───
   var circle = L.circle([-7.928507091231353, 112.71422518461497], {
     color: '#FF1493', fillColor: '#FFC0CB',
-    fillOpacity: 0.35, radius: 1000, weight: 2
+    fillOpacity: 0.35, radius: 5000, weight: 2
   }).bindPopup(makePopup('⭕','Radius Bandara','Area Penyangga',[
-    ['Radius','1000 meter'],['Pusat','Bandara MLG']
+    ['Radius','5000 meter'],['Pusat','Bandara MLG']
   ]));
 
   var circleGroup = L.layerGroup([circle]).addTo(mymap);
