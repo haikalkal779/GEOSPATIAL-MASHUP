@@ -92,9 +92,10 @@
       margin-top: 2px;
     }
 
-    .header-badges {
+    .header-right {
       display: flex;
-      gap: 8px;
+      align-items: center;
+      gap: 12px;
     }
 
     .badge {
@@ -107,23 +108,6 @@
       font-size: 10px;
       border: 1px solid var(--border);
       color: var(--muted);
-    }
-
-    .badge.live {
-      border-color: rgba(52,211,153,0.4);
-      color: var(--accent3);
-    }
-
-    .badge .dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--accent3);
-      animation: pulse-dot 2s infinite;
-    }
-
-    @keyframes pulse-dot {
-      0%,100% { opacity:1; }
-      50% { opacity:0.3; }
     }
 
     .header-coords {
@@ -355,28 +339,10 @@
       position: relative;
     }
 
-    /* Scan line */
     .map-wrap {
       flex: 1;
       position: relative;
       overflow: hidden;
-    }
-
-    .map-wrap::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      opacity: 0.3;
-      animation: scan 5s linear infinite;
-      z-index: 400;
-      pointer-events: none;
-    }
-
-    @keyframes scan {
-      0%   { top: 0; }
-      100% { top: 100%; }
     }
 
     /* Compass */
@@ -405,7 +371,7 @@
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 12px 14px;
-      min-width: 155px;
+      min-width: 165px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       pointer-events: none;
     }
@@ -554,11 +520,10 @@
       <div class="app-subtitle">Fakultas Geografi · Universitas Gadjah Mada</div>
     </div>
   </div>
-  <div class="header-badges">
-    <div class="badge live"><div class="dot"></div>LIVE</div>
+  <div class="header-right">
     <div class="badge">Leaflet 1.9.4</div>
+    <div class="header-coords" id="header-coords">Arahkan kursor ke peta…</div>
   </div>
-  <div class="header-coords" id="header-coords">Arahkan kursor ke peta…</div>
 </header>
 
 <!-- BODY -->
@@ -611,7 +576,7 @@
             <div class="layer-icon" style="background:rgba(244,114,182,0.1);color:var(--danger)">⭕</div>
             <div>
               <div class="layer-name">Circle</div>
-              <div class="layer-sub">Radius 5000m</div>
+              <div class="layer-sub">Radius 3000m</div>
             </div>
           </div>
           <div class="toggle on" id="toggle-circle"></div>
@@ -622,7 +587,7 @@
             <div class="layer-icon" style="background:rgba(52,211,153,0.1);color:var(--accent3)">🔷</div>
             <div>
               <div class="layer-name">Polygon</div>
-              <div class="layer-sub">Kawasan Malang</div>
+              <div class="layer-sub">Sebagian Malang</div>
             </div>
           </div>
           <div class="toggle on" id="toggle-polygon"></div>
@@ -633,7 +598,7 @@
             <div class="layer-icon" style="background:rgba(129,140,248,0.1);color:var(--accent2)">〰️</div>
             <div>
               <div class="layer-name">Polyline</div>
-              <div class="layer-sub">Jalur Malang</div>
+              <div class="layer-sub">Jl. Veteran Malang</div>
             </div>
           </div>
           <div class="toggle on" id="toggle-polyline"></div>
@@ -658,9 +623,6 @@
           </div>
           <div class="basemap-btn" onclick="switchBasemap('terrain', this)">
             <span class="basemap-icon">🌿</span>Terrain
-          </div>
-          <div class="basemap-btn" onclick="switchBasemap('watercolor', this)">
-            <span class="basemap-icon">🎨</span>Watercolor
           </div>
         </div>
       </div>
@@ -741,15 +703,15 @@
       </div>
       <div class="legend-item">
         <div class="legend-dot" style="background:rgba(255,20,147,0.3);border-color:#FF1493"></div>
-        Radius Bandara
+        Radius 3000m Bandara
       </div>
       <div class="legend-item">
         <div class="legend-symbol" style="background:rgba(0,255,127,0.3);border:1px solid #2E8B57"></div>
-        Kawasan Area
+        Sebagian Daerah Malang
       </div>
       <div class="legend-item">
         <div class="legend-symbol" style="background:#818cf8;height:3px;border-radius:2px;margin-top:3px"></div>
-        Jalur / Route
+        Jl. Veteran Malang
       </div>
     </div>
   </div>
@@ -774,13 +736,13 @@
   </div>
   <div class="separator"></div>
   <div class="status-item" style="margin-left:auto">
-    <span>© 2025 WebGIS Praktikum</span>
+    <span>© 2025 WebGIS Praktikum · Fak. Geografi UGM</span>
   </div>
 </div>
 
 <script>
   // ─── INIT MAP ───
-  var mymap = L.map('map', { zoomControl: true }).setView([-7.95, 112.65], 12);
+  var mymap = L.map('map', { zoomControl: true }).setView([-7.95, 112.65], 13);
 
   // ─── BASEMAPS ───
   var basemaps = {
@@ -804,10 +766,6 @@
     terrain: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 13,
       attribution: '© <a href="https://www.esri.com">Esri</a> Shaded Relief'
-    }),
-    watercolor: L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', {
-      maxZoom: 16,
-      attribution: '© <a href="https://stamen.com">Stamen</a> Watercolor · © <a href="https://openstreetmap.org">OSM</a>'
     })
   };
 
@@ -840,75 +798,119 @@
   }
 
   function makePopup(icon, title, subtitle, rows) {
-    var rowsHtml = rows.map(([k,v]) => `
-      <div class="popup-row">
-        <span class="popup-row-key">${k}</span>
-        <span class="popup-row-val">${v}</span>
-      </div>`).join('');
-    return `<div class="custom-popup">
-      <div class="popup-header">
-        <span class="popup-icon">${icon}</span>
-        <div>
-          <div class="popup-title">${title}</div>
-          <div class="popup-subtitle">${subtitle}</div>
-        </div>
-      </div>
-      <div class="popup-rows">${rowsHtml}</div>
-    </div>`;
+    var rowsHtml = rows.map(function(r) {
+      return '<div class="popup-row"><span class="popup-row-key">' + r[0] + '</span><span class="popup-row-val">' + r[1] + '</span></div>';
+    }).join('');
+    return '<div class="custom-popup">' +
+      '<div class="popup-header">' +
+        '<span class="popup-icon">' + icon + '</span>' +
+        '<div>' +
+          '<div class="popup-title">' + title + '</div>' +
+          '<div class="popup-subtitle">' + subtitle + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="popup-rows">' + rowsHtml + '</div>' +
+    '</div>';
   }
 
   // ─── MARKERS ───
   var markerUB = L.marker([-7.952616816482731, 112.61368634992249], {
     icon: makeIcon('🎓', '#1e3a8a')
-  }).bindPopup(makePopup('🎓','Universitas Brawijaya','Pendidikan Tinggi',[
-    ['Lat','−7.9526°'],['Lng','112.6136°'],['Tipe','Universitas'],['Kota','Malang']
+  }).bindPopup(makePopup('🎓', 'Universitas Brawijaya', 'Pendidikan Tinggi', [
+    ['Lat', '−7.9526°'],
+    ['Lng', '112.6136°'],
+    ['Tipe', 'Universitas'],
+    ['Kota', 'Malang']
   ]), { maxWidth: 240 });
 
   var markerBandara = L.marker([-7.928507091231353, 112.71422518461497], {
     icon: makeIcon('✈️', '#7f1d1d')
-  }).bindPopup(makePopup('✈️','Bandara Abd. Rachman Saleh','Transportasi Udara',[
-    ['Lat','−7.9285°'],['Lng','112.7142°'],['IATA','MLG'],['Kota','Malang']
+  }).bindPopup(makePopup('✈️', 'Bandara Abd. Rachman Saleh', 'Transportasi Udara', [
+    ['Lat', '−7.9285°'],
+    ['Lng', '112.7142°'],
+    ['IATA', 'MLG'],
+    ['Kota', 'Malang']
   ]), { maxWidth: 240 });
 
   var markersGroup = L.layerGroup([markerUB, markerBandara]).addTo(mymap);
 
-  // ─── CIRCLE ───
+  // ─── CIRCLE — Radius 3000m dari Bandara ───
   var circle = L.circle([-7.928507091231353, 112.71422518461497], {
-    color: '#FF1493', fillColor: '#FFC0CB',
-    fillOpacity: 0.35, radius: 5000, weight: 2
-  }).bindPopup(makePopup('⭕','Radius Bandara',[
-    ['Radius','5000 meter'],['Pusat','Bandara MLG']
-  ]));
+    color: '#FF1493',
+    fillColor: '#FFC0CB',
+    fillOpacity: 0.25,
+    radius: 3000,
+    weight: 2
+  }).bindPopup(makePopup('⭕', 'Radius Bandara Abd. Saleh', 'Area Penyangga Bandara', [
+    ['Radius', '3.000 meter'],
+    ['Pusat', 'Bandara MLG'],
+    ['Kota', 'Malang']
+  ]), { maxWidth: 240 });
 
   var circleGroup = L.layerGroup([circle]).addTo(mymap);
 
-  // ─── POLYGON ───
+  // ─── POLYGON — Sebagian Daerah Malang (Kec. Lowokwaru) ───
+  // Koordinat mengikuti batas kasar Kecamatan Lowokwaru, Kota Malang
   var polygon = L.polygon([
-    [-7.9800, 112.6200],[-7.9700, 112.6450],
-    [-7.9550, 112.6350],[-7.9650, 112.6100]
+    [-7.9200, 112.5980],
+    [-7.9180, 112.6150],
+    [-7.9250, 112.6300],
+    [-7.9380, 112.6350],
+    [-7.9500, 112.6280],
+    [-7.9520, 112.6100],
+    [-7.9430, 112.5970],
+    [-7.9300, 112.5930]
   ], {
-    color: '#2E8B57', fillColor: '#00FF7F',
-    fillOpacity: 0.2, weight: 2, dashArray: '6,4'
-  }).bindPopup(makePopup('🔷','Kawasan Malang','Area Administratif',[
-    ['Tipe','Polygon'],['Titik','4 vertex'],['Wilayah','Malang']
-  ]));
+    color: '#2E8B57',
+    fillColor: '#00FF7F',
+    fillOpacity: 0.18,
+    weight: 2,
+    dashArray: '6,4'
+  }).bindPopup(makePopup('🔷', 'Kec. Lowokwaru', 'Sebagian Daerah Kota Malang', [
+    ['Tipe', 'Polygon'],
+    ['Wilayah', 'Kec. Lowokwaru'],
+    ['Kota', 'Malang'],
+    ['Titik', '8 vertex']
+  ]), { maxWidth: 240 });
 
   var polygonGroup = L.layerGroup([polygon]).addTo(mymap);
 
-  // ─── POLYLINE ───
+  // ─── POLYLINE — Jl. Veteran Malang ───
+  // Koordinat mengikuti jalur asli Jalan Veteran, Malang (dari simpang ke simpang)
   var polyline = L.polyline([
-    [-7.9750, 112.6200],[-7.9650, 112.6300],[-7.9550, 112.6400]
+    [-7.9490, 112.6138],  // Pertigaan Jl. Veteran - Jl. Sumbersari
+    [-7.9510, 112.6155],
+    [-7.9530, 112.6170],
+    [-7.9548, 112.6185],
+    [-7.9565, 112.6200],
+    [-7.9580, 112.6215],
+    [-7.9595, 112.6228],
+    [-7.9610, 112.6242],  // Perempatan Jl. Veteran - Jl. Bandung
+    [-7.9625, 112.6255],
+    [-7.9640, 112.6265],
+    [-7.9655, 112.6272]   // Ujung selatan Jl. Veteran
   ], {
-    color: '#818cf8', weight: 4, opacity: 0.9,
-    lineCap: 'round', lineJoin: 'round'
-  }).bindPopup(makePopup('〰️','Jalur Malang','Rute / Jalan',[
-    ['Tipe','Polyline'],['Titik','3 nodes'],['Warna','#818cf8']
-  ]));
+    color: '#818cf8',
+    weight: 5,
+    opacity: 0.9,
+    lineCap: 'round',
+    lineJoin: 'round'
+  }).bindPopup(makePopup('〰️', 'Jalan Veteran', 'Kota Malang', [
+    ['Tipe', 'Polyline'],
+    ['Nama Jalan', 'Jl. Veteran'],
+    ['Kota', 'Malang'],
+    ['Titik', '11 nodes']
+  ]), { maxWidth: 240 });
 
   var polylineGroup = L.layerGroup([polyline]).addTo(mymap);
 
   // ─── LAYER REGISTRY ───
-  var layers = { markers: markersGroup, circle: circleGroup, polygon: polygonGroup, polyline: polylineGroup };
+  var layers = {
+    markers: markersGroup,
+    circle: circleGroup,
+    polygon: polygonGroup,
+    polyline: polylineGroup
+  };
 
   function toggleLayer(name, el) {
     var toggle = document.getElementById('toggle-' + name);
