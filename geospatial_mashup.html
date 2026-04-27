@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WebGIS Malang — Peta Interaktif</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --bg:        #0a0e1a;
+      --surface:   #111827;
+      --panel:     #151d2e;
+      --border:    rgba(99,179,237,0.15);
+      --accent:    #38bdf8;
+      --accent2:   #818cf8;
+      --accent3:   #34d399;
+      --danger:    #f472b6;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --glow:      rgba(56,189,248,0.25);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── HEADER ─── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 64px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-mark {
+      width: 34px;
+      height: 34px;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -1px;
+      box-shadow: 0 0 12px var(--glow);
+    }
+
+    .app-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text);
+    }
+
+    .app-title span { color: var(--accent); }
+
+    .app-subtitle {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+      margin-top: 2px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .header-coords {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ─── LAYOUT ─── */
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      width: 290px;
+      flex-shrink: 0;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 500;
+    }
+
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .sidebar-section {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .sidebar-section:nth-child(1) { animation-delay: 0.05s; }
+    .sidebar-section:nth-child(2) { animation-delay: 0.15s; }
+    .sidebar-section:nth-child(3) { animation-delay: 0.25s; }
+    .sidebar-section:nth-child(4) { animation-delay: 0.35s; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .stat-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Layer toggles */
+    .layer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .layer-item:hover { background: rgba(255,255,255,0.04); }
+    .layer-item.active {
+      background: rgba(56,189,248,0.07);
+      border-color: rgba(56,189,248,0.2);
+    }
+
+    .layer-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .layer-icon {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .layer-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .layer-sub  { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--muted); }
+
+    /* Toggle switch */
+    .toggle {
+      width: 36px; height: 20px;
+      border-radius: 10px;
+      background: var(--muted);
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle.on { background: var(--accent); }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: white;
+      top: 3px; left: 3px;
+      transition: transform 0.2s;
+    }
+
+    .toggle.on::after { transform: translateX(16px); }
+
+    /* Basemap */
+    .basemap-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .basemap-btn {
+      padding: 8px 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .basemap-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .basemap-btn.active {
+      border-color: var(--accent);
+      background: rgba(56,189,248,0.1);
+      color: var(--accent);
+    }
+
+    .basemap-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+    /* Nav items */
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--border);
+    }
+
+    /* Info panel */
+    .info-panel {
+      padding: 16px 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .coord-display {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .coord-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .coord-row:last-child { margin-bottom: 0; }
+    .coord-key { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+    .coord-val { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); }
+
+    /* ─── MAP ─── */
+    #map {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .map-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Compass */
+    .map-compass {
+      position: absolute;
+      top: 16px; right: 16px;
+      z-index: 800;
+      width: 48px; height: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
+
+    /* Legend */
+    .map-legend {
+      position: absolute;
+      bottom: 50px; right: 16px;
+      z-index: 800;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      min-width: 165px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
+
+    .legend-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .legend-item:last-child { margin-bottom: 0; }
+
+    .legend-symbol {
+      width: 24px; height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 2px solid;
+    }
+
+    /* Leaflet overrides */
+    .leaflet-popup-content-wrapper {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+      color: var(--text) !important;
+      padding: 0 !important;
+    }
+
+    .leaflet-popup-tip { background: var(--surface) !important; }
+    .leaflet-popup-content { margin: 0 !important; min-width: 200px; }
+
+    .custom-popup { padding: 14px 16px; }
+
+    .popup-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .popup-icon  { font-size: 20px; }
+    .popup-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .popup-subtitle { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+    .popup-rows { display: flex; flex-direction: column; gap: 5px; }
+
+    .popup-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+
+    .popup-row-key { color: var(--muted); }
+    .popup-row-val { color: var(--accent); font-family: 'Space Mono', monospace; }
+
+    .leaflet-control-zoom {
+      border: 1px solid var(--border) !important;
+      border-radius: 10px !important;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+    }
+
+    .leaflet-control-zoom a {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-bottom: 1px solid var(--border) !important;
+      width: 36px !important;
+      height: 36px !important;
+      line-height: 36px !important;
+      font-size: 18px !important;
+    }
+
+    .leaflet-control-zoom a:hover {
+      background: var(--panel) !important;
+      color: var(--accent) !important;
+    }
+
+    .leaflet-bar a:last-child { border-bottom: none !important; }
+
+    .leaflet-control-attribution {
+      background: rgba(10,14,26,0.85) !important;
+      color: var(--muted) !important;
+      font-family: 'Space Mono', monospace !important;
+      font-size: 9px !important;
+      border-radius: 6px 0 0 0 !important;
+      padding: 3px 8px !important;
+    }
+
+    .leaflet-control-attribution a { color: var(--accent) !important; }
+
+    /* ─── BOTTOM BAR ─── */
+    .bottom-bar {
+      height: 36px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 20px;
+      flex-shrink: 0;
+      z-index: 1000;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .status-item .value { color: var(--text); }
+    .separator { width: 1px; height: 16px; background: var(--border); }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="logo-mark">GIS</div>
+    <div>
+      <div class="app-title">WebGIS <span>Malang</span></div>
+      <div class="app-subtitle">Fakultas Geografi · Universitas Gadjah Mada</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="badge">Leaflet 1.9.4</div>
+    <div class="header-coords" id="header-coords">Arahkan kursor ke peta…</div>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-scroll">
+
+      <!-- Stats -->
+      <div class="sidebar-section">
+        <div class="section-label">Ringkasan Objek</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">2</div>
+            <div class="stat-label">Marker</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color:var(--danger)">1</div>
+            <div class="stat-label">Circle</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color:var(--accent3)">1</div>
+            <div class="stat-label">Polygon</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color:var(--accent2)">1</div>
+            <div class="stat-label">Polyline</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer Control -->
+      <div class="sidebar-section">
+        <div class="section-label">Layer Objek</div>
+
+        <div class="layer-item active" id="item-markers" onclick="toggleLayer('markers', this)">
+          <div class="layer-left">
+            <div class="layer-icon" style="background:rgba(56,189,248,0.1);color:var(--accent)">📍</div>
+            <div>
+              <div class="layer-name">Markers</div>
+              <div class="layer-sub">UB · Bandara</div>
+            </div>
+          </div>
+          <div class="toggle on" id="toggle-markers"></div>
+        </div>
+
+        <div class="layer-item active" id="item-circle" onclick="toggleLayer('circle', this)">
+          <div class="layer-left">
+            <div class="layer-icon" style="background:rgba(244,114,182,0.1);color:var(--danger)">⭕</div>
+            <div>
+              <div class="layer-name">Circle</div>
+              <div class="layer-sub">Radius 3000m</div>
+            </div>
+          </div>
+          <div class="toggle on" id="toggle-circle"></div>
+        </div>
+
+        <div class="layer-item active" id="item-polygon" onclick="toggleLayer('polygon', this)">
+          <div class="layer-left">
+            <div class="layer-icon" style="background:rgba(52,211,153,0.1);color:var(--accent3)">🔷</div>
+            <div>
+              <div class="layer-name">Polygon</div>
+              <div class="layer-sub">Sebagian Malang</div>
+            </div>
+          </div>
+          <div class="toggle on" id="toggle-polygon"></div>
+        </div>
+
+        <div class="layer-item active" id="item-polyline" onclick="toggleLayer('polyline', this)">
+          <div class="layer-left">
+            <div class="layer-icon" style="background:rgba(129,140,248,0.1);color:var(--accent2)">〰️</div>
+            <div>
+              <div class="layer-name">Polyline</div>
+              <div class="layer-sub">Jl. Veteran Malang</div>
+            </div>
+          </div>
+          <div class="toggle on" id="toggle-polyline"></div>
+        </div>
+      </div>
+
+      <!-- Basemap -->
+      <div class="sidebar-section">
+        <div class="section-label">Basemap</div>
+        <div class="basemap-grid">
+          <div class="basemap-btn active" onclick="switchBasemap('osm', this)">
+            <span class="basemap-icon">🗺️</span>OSM
+          </div>
+          <div class="basemap-btn" onclick="switchBasemap('satellite', this)">
+            <span class="basemap-icon">🛰️</span>Satelit Esri
+          </div>
+          <div class="basemap-btn" onclick="switchBasemap('topo', this)">
+            <span class="basemap-icon">⛰️</span>Topo
+          </div>
+          <div class="basemap-btn" onclick="switchBasemap('dark', this)">
+            <span class="basemap-icon">🌑</span>Dark
+          </div>
+          <div class="basemap-btn" onclick="switchBasemap('terrain', this)">
+            <span class="basemap-icon">🌿</span>Terrain
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigasi Cepat -->
+      <div class="sidebar-section">
+        <div class="section-label">Navigasi Cepat</div>
+
+        <div class="nav-item" onclick="flyTo([-7.952616816482731, 112.61368634992249], 16)">
+          <div class="layer-left">
+            <div class="layer-icon" style="background:rgba(56,189,248,0.1)">🎓</div>
+            <div>
+              <div class="layer-name">Univ. Brawijaya</div>
+              <div class="layer-sub">-7.9526, 112.6136</div>
+            </div>
+          </div>
+          <span style="color:var(--muted);font-size:13px">›</span>
+        </div>
+
+        <div class="nav-item" onclick="flyTo([-7.928507091231353, 112.71422518461497], 15)">
+          <div class="layer-left">
+            <div class="layer-icon" style="background:rgba(244,114,182,0.1)">✈️</div>
+            <div>
+              <div class="layer-name">Bandara Abd. Saleh</div>
+              <div class="layer-sub">-7.9285, 112.7142</div>
+            </div>
+          </div>
+          <span style="color:var(--muted);font-size:13px">›</span>
+        </div>
+
+        <div class="nav-item" onclick="flyTo([-7.9675, 112.6275], 12)">
+          <div class="layer-left">
+            <div class="layer-icon" style="background:rgba(52,211,153,0.1)">🔍</div>
+            <div>
+              <div class="layer-name">Tampilan Penuh</div>
+              <div class="layer-sub">Semua objek</div>
+            </div>
+          </div>
+          <span style="color:var(--muted);font-size:13px">›</span>
+        </div>
+      </div>
+
+    </div><!-- end sidebar-scroll -->
+
+    <!-- Koordinat Kursor -->
+    <div class="info-panel">
+      <div class="section-label">Koordinat Kursor</div>
+      <div class="coord-display">
+        <div class="coord-row">
+          <span class="coord-key">LAT</span>
+          <span class="coord-val" id="cur-lat">—</span>
+        </div>
+        <div class="coord-row">
+          <span class="coord-key">LNG</span>
+          <span class="coord-val" id="cur-lng">—</span>
+        </div>
+        <div class="coord-row">
+          <span class="coord-key">ZOOM</span>
+          <span class="coord-val" id="cur-zoom">12</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAP WRAPPER -->
+  <div class="map-wrap">
+    <div id="map"></div>
+
+    <!-- Compass -->
+    <div class="map-compass">🧭</div>
+
+    <!-- Legend -->
+    <div class="map-legend">
+      <div class="legend-title">Legenda</div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#38bdf8;border-color:#38bdf8"></div>
+        Marker Lokasi
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:rgba(255,20,147,0.3);border-color:#FF1493"></div>
+        Radius 3000m Bandara
+      </div>
+      <div class="legend-item">
+        <div class="legend-symbol" style="background:rgba(0,255,127,0.3);border:1px solid #2E8B57"></div>
+        Sebagian Daerah Malang
+      </div>
+      <div class="legend-item">
+        <div class="legend-symbol" style="background:#818cf8;height:3px;border-radius:2px;margin-top:3px"></div>
+        Jl. Veteran Malang
+      </div>
+    </div>
+  </div>
+
+</div><!-- end app-body -->
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar">
+  <div class="status-item">
+    <span>STATUS</span>
+    <span class="value" style="color:var(--accent3)">● Online</span>
+  </div>
+  <div class="separator"></div>
+  <div class="status-item">
+    <span>PROYEKSI</span>
+    <span class="value">WGS 84 / EPSG:4326</span>
+  </div>
+  <div class="separator"></div>
+  <div class="status-item">
+    <span>AREA</span>
+    <span class="value">Kota Malang, Jawa Timur</span>
+  </div>
+  <div class="separator"></div>
+  <div class="status-item" style="margin-left:auto">
+    <span>© 2025 WebGIS Praktikum · Fak. Geografi UGM</span>
+  </div>
+</div>
+
+<script>
+  // ─── INIT MAP ───
+  var mymap = L.map('map', { zoomControl: true }).setView([-7.95, 112.65], 13);
+
+  // ─── BASEMAPS ───
+  var basemaps = {
+    osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>'
+    }),
+    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: '© <a href="https://www.esri.com">Esri</a> World Imagery'
+    }),
+    topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: '© OpenTopoMap'
+    }),
+    dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd',
+      attribution: '© <a href="https://carto.com">CARTO</a> Dark Matter'
+    }),
+    terrain: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 13,
+      attribution: '© <a href="https://www.esri.com">Esri</a> Shaded Relief'
+    })
+  };
+
+  var currentBasemap = basemaps.osm.addTo(mymap);
+
+  function switchBasemap(type, el) {
+    mymap.removeLayer(currentBasemap);
+    currentBasemap = basemaps[type].addTo(mymap);
+    document.querySelectorAll('.basemap-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // ─── CUSTOM ICONS ───
+  function makeIcon(emoji, bg) {
+    return L.divIcon({
+      html: `<div style="
+        width:38px;height:38px;
+        background:${bg};
+        border:2.5px solid rgba(255,255,255,0.85);
+        border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 4px 16px rgba(0,0,0,0.5);
+      "><span style="transform:rotate(45deg);font-size:16px">${emoji}</span></div>`,
+      iconSize: [38, 38],
+      iconAnchor: [19, 38],
+      popupAnchor: [0, -42],
+      className: ''
+    });
+  }
+
+  function makePopup(icon, title, subtitle, rows) {
+    var rowsHtml = rows.map(function(r) {
+      return '<div class="popup-row"><span class="popup-row-key">' + r[0] + '</span><span class="popup-row-val">' + r[1] + '</span></div>';
+    }).join('');
+    return '<div class="custom-popup">' +
+      '<div class="popup-header">' +
+        '<span class="popup-icon">' + icon + '</span>' +
+        '<div>' +
+          '<div class="popup-title">' + title + '</div>' +
+          '<div class="popup-subtitle">' + subtitle + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="popup-rows">' + rowsHtml + '</div>' +
+    '</div>';
+  }
+
+  // ─── MARKERS ───
+  var markerUB = L.marker([-7.952616816482731, 112.61368634992249], {
+    icon: makeIcon('🎓', '#1e3a8a')
+  }).bindPopup(makePopup('🎓', 'Universitas Brawijaya', 'Pendidikan Tinggi', [
+    ['Lat', '−7.9526°'],
+    ['Lng', '112.6136°'],
+    ['Tipe', 'Universitas'],
+    ['Kota', 'Malang']
+  ]), { maxWidth: 240 });
+
+  var markerBandara = L.marker([-7.928507091231353, 112.71422518461497], {
+    icon: makeIcon('✈️', '#7f1d1d')
+  }).bindPopup(makePopup('✈️', 'Bandara Abd. Rachman Saleh', 'Transportasi Udara', [
+    ['Lat', '−7.9285°'],
+    ['Lng', '112.7142°'],
+    ['IATA', 'MLG'],
+    ['Kota', 'Malang']
+  ]), { maxWidth: 240 });
+
+  var markersGroup = L.layerGroup([markerUB, markerBandara]).addTo(mymap);
+
+  // ─── CIRCLE — Radius 3000m dari Bandara ───
+  var circle = L.circle([-7.928507091231353, 112.71422518461497], {
+    color: '#FF1493',
+    fillColor: '#FFC0CB',
+    fillOpacity: 0.25,
+    radius: 3000,
+    weight: 2
+  }).bindPopup(makePopup('⭕', 'Radius Bandara Abd. Saleh', 'Area Penyangga Bandara', [
+    ['Radius', '3.000 meter'],
+    ['Pusat', 'Bandara MLG'],
+    ['Kota', 'Malang']
+  ]), { maxWidth: 240 });
+
+  var circleGroup = L.layerGroup([circle]).addTo(mymap);
+
+  // ─── POLYGON — Sebagian Daerah Malang (Kec. Lowokwaru) ───
+  // Koordinat mengikuti batas kasar Kecamatan Lowokwaru, Kota Malang
+  var polygon = L.polygon([
+    [-7.9200, 112.5980],
+    [-7.9180, 112.6150],
+    [-7.9250, 112.6300],
+    [-7.9380, 112.6350],
+    [-7.9500, 112.6280],
+    [-7.9520, 112.6100],
+    [-7.9430, 112.5970],
+    [-7.9300, 112.5930]
+  ], {
+    color: '#2E8B57',
+    fillColor: '#00FF7F',
+    fillOpacity: 0.18,
+    weight: 2,
+    dashArray: '6,4'
+  }).bindPopup(makePopup('🔷', 'Kec. Lowokwaru', 'Sebagian Daerah Kota Malang', [
+    ['Tipe', 'Polygon'],
+    ['Wilayah', 'Kec. Lowokwaru'],
+    ['Kota', 'Malang'],
+    ['Titik', '8 vertex']
+  ]), { maxWidth: 240 });
+
+  var polygonGroup = L.layerGroup([polygon]).addTo(mymap);
+
+  // ─── POLYLINE — Jl. Veteran Malang ───
+  // Koordinat mengikuti jalur asli Jalan Veteran, Malang (dari simpang ke simpang)
+  var polyline = L.polyline([
+    [-7.9490, 112.6138],  // Pertigaan Jl. Veteran - Jl. Sumbersari
+    [-7.9510, 112.6155],
+    [-7.9530, 112.6170],
+    [-7.9548, 112.6185],
+    [-7.9565, 112.6200],
+    [-7.9580, 112.6215],
+    [-7.9595, 112.6228],
+    [-7.9610, 112.6242],  // Perempatan Jl. Veteran - Jl. Bandung
+    [-7.9625, 112.6255],
+    [-7.9640, 112.6265],
+    [-7.9655, 112.6272]   // Ujung selatan Jl. Veteran
+  ], {
+    color: '#818cf8',
+    weight: 5,
+    opacity: 0.9,
+    lineCap: 'round',
+    lineJoin: 'round'
+  }).bindPopup(makePopup('〰️', 'Jalan Veteran', 'Kota Malang', [
+    ['Tipe', 'Polyline'],
+    ['Nama Jalan', 'Jl. Veteran'],
+    ['Kota', 'Malang'],
+    ['Titik', '11 nodes']
+  ]), { maxWidth: 240 });
+
+  var polylineGroup = L.layerGroup([polyline]).addTo(mymap);
+
+  // ─── LAYER REGISTRY ───
+  var layers = {
+    markers: markersGroup,
+    circle: circleGroup,
+    polygon: polygonGroup,
+    polyline: polylineGroup
+  };
+
+  function toggleLayer(name, el) {
+    var toggle = document.getElementById('toggle-' + name);
+    var isOn = toggle.classList.contains('on');
+    if (isOn) {
+      mymap.removeLayer(layers[name]);
+      toggle.classList.remove('on');
+      el.classList.remove('active');
+    } else {
+      layers[name].addTo(mymap);
+      toggle.classList.add('on');
+      el.classList.add('active');
+    }
+  }
+
+  // ─── FLY TO ───
+  function flyTo(latlng, zoom) {
+    mymap.flyTo(latlng, zoom, { duration: 1.2 });
+  }
+
+  // ─── MOUSE EVENTS ───
+  mymap.on('mousemove', function(e) {
+    var lat = e.latlng.lat.toFixed(6);
+    var lng = e.latlng.lng.toFixed(6);
+    document.getElementById('cur-lat').textContent = lat + '°';
+    document.getElementById('cur-lng').textContent = lng + '°';
+    document.getElementById('header-coords').textContent = 'Lat: ' + lat + '   Lng: ' + lng;
+  });
+
+  mymap.on('zoomend', function() {
+    document.getElementById('cur-zoom').textContent = mymap.getZoom();
+  });
+</script>
+</body>
+</html>
